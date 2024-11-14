@@ -34,4 +34,7 @@ const productSchema = new Schema({
   ],
 });
 
+// Create a text index on the product_name field to enable text search
+productSchema.index({ product_name: 'text' });
+
 module.exports = mongoose.model("product", productSchema);

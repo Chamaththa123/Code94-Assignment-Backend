@@ -57,10 +57,20 @@ const deleteProductById = async (id) => {
   return await Product.findByIdAndDelete(id);
 };
 
+// Search products by name using full-text search
+const searchProductsByName = async (searchTerm) => {
+  const products = await Product.find({
+      $text: { $search: searchTerm }  // Full-text search for product names
+  });
+
+  return products;
+};
+
 module.exports = {
   addProduct,
   updateProduct,
   getAllProducts,
   getProductById,
   deleteProductById,
+  searchProductsByName
 };

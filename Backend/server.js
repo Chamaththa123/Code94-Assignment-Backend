@@ -1,4 +1,5 @@
 const express = require('express');
+const cors = require('cors');
 const connectDB = require('./db/db');
 require('dotenv').config();
 
@@ -13,7 +14,11 @@ connectDB();
 // Middleware
 app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true })); // for parsing application/x-www-form-urlencoded
-
+const corsOptions = {
+    origin: "*",
+  };
+  
+  app.use(cors(corsOptions));
 app.use('/uploads', express.static('uploads'));
 
 // Routes
