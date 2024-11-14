@@ -5,27 +5,27 @@ const createProduct = async (req, res) => {
   try {
     const { sku, quantity, product_name, product_description } = req.body;
 
-    // Map image file paths to an array of objects with 'path' and 'isMain'
     const imagePaths = req.files
       ? req.files.map((file, index) => ({
           path: file.path,
-          isMain: req.body.isMain && req.body.isMain[index] === "true", // Check if the main image is indicated
+          isMain: req.body.isMain && req.body.isMain[index] === "true",
         }))
       : [];
 
-    // Ensure at least one image is provided
     if (imagePaths.length === 0) {
       return res
         .status(400)
         .json({ message: "At least one image is required" });
     }
 
-    // Validate that only one image is marked as main
     const mainImages = imagePaths.filter((image) => image.isMain);
     if (mainImages.length > 1) {
       return res
         .status(400)
         .json({ message: "Only one image can be the main image" });
+    }
+    if (mainImages.length === 0) {
+      imagePaths[0].isMain = true;
     }
 
     const product = await productDBService.addProduct(
@@ -38,7 +38,7 @@ const createProduct = async (req, res) => {
     res.status(201).json({ message: "Product created successfully", product });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error when fetchin data" });
+    res.status(500).json({ message: "Server error when fetching data" });
   }
 };
 
@@ -148,14 +148,14 @@ const deleteProductById = async (req, res) => {
 const searchProducts = async (req, res) => {
   try {
     const { searchTerm } = req.query;
-    console.log(searchTerm)
+    console.log(searchTerm);
     if (!searchTerm) {
       return res.status(400).json({ message: "Search term is required" });
     }
 
     // Call the service method to search for products
     const products = await productDBService.searchProductsByName(searchTerm);
-console.log(products)
+    console.log(products);
     res.status(200).json(products);
   } catch (error) {
     console.error(error);
