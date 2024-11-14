@@ -1,6 +1,6 @@
 const Product = require("../models/productModel");
 
-// add a new product
+// Add a new product
 const addProduct = async (
   sku,
   quantity,
@@ -8,62 +8,138 @@ const addProduct = async (
   product_description,
   imagePaths
 ) => {
-  const product = new Product({
-    sku,
-    quantity,
-    product_name,
-    product_description,
-    images: imagePaths,
-  });
-  return await product.save();
+  try {
+    const product = new Product({
+      sku,
+      quantity,
+      product_name,
+      product_description,
+      images: imagePaths,
+    });
+    return await product.save();
+  } catch (error) {
+    throw new Error("Error creating product");
+  }
 };
 
-// update an existing product
+// Update an existing product and remove selected images
 const updateProduct = async (
   id,
   sku,
   quantity,
   product_name,
   product_description,
-  imagePaths
+  imagePaths,
+  removedImages // removed image id list
 ) => {
-  const updateData = {
-    sku,
-    quantity,
-    product_name,
-    product_description,
-  };
+  try {
+    const updateData = {
+      sku,
+      quantity,
+      product_name,
+      product_description,
+    };
 
-  // If new images are provided, update the images field
-  if (imagePaths && imagePaths.length > 0) {
-    updateData.images = imagePaths;
+    const existingProduct = await Product.findById(id);
+
+    if (!existingProduct) {
+      throw new Error("Product not found");
+    }
+
+    // Filter removed images
+    if (removedImages && removedImages.length > 0) {
+      updateData.images = existingProduct.images.filter(
+        (image) => !removedImages.includes(image._id.toString())
+      );
+    } else {
+      updateData.images = existingProduct.images;
+    }
+
+    // If new images are added, add them to the updated images array
+    if (imagePaths && imagePaths.length > 0) {
+      updateData.images = [...updateData.images, ...imagePaths];
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
+
+    return updatedProduct;
+  } catch (error) {
+    throw new Error("Error updating product");
   }
+};
 
-  return await Product.findByIdAndUpdate(id, updateData, { new: true });
+// Set an image as the main image and set false for other images
+const setMainImage = async (productId, imageId) => {
+  try {
+    const product = await Product.findById(productId);
+
+    if (!product) {
+      throw new Error("Product not found");
+    }
+
+    // Update all images to set isMain = false
+    product.images.forEach((image) => {
+      image.isMain = false;
+    });
+
+    // Find the image, set its isMain to true for seletd image
+    const imageToSetAsMain = product.images.find(
+      (image) => image._id.toString() === imageId.toString()
+    );
+
+    if (!imageToSetAsMain) {
+      throw new Error("Image not found");
+    }
+
+    imageToSetAsMain.isMain = true;
+
+    const updatedProduct = await product.save();
+
+    return updatedProduct;
+  } catch (error) {
+    throw new Error("Error setting main image");
+  }
 };
 
 // Get all products
 const getAllProducts = async () => {
-  return await Product.find();
+  try {
+    return await Product.find();
+  } catch (error) {
+    throw new Error("Error fetching products");
+  }
 };
 
 // Get product by ID
 const getProductById = async (id) => {
-  return await Product.findById(id);
+  try {
+    return await Product.findById(id);
+  } catch (error) {
+    throw new Error("Error fetching product by ID");
+  }
 };
 
 // Delete product by ID
 const deleteProductById = async (id) => {
-  return await Product.findByIdAndDelete(id);
+  try {
+    return await Product.findByIdAndDelete(id);
+  } catch (error) {
+    throw new Error("Error deleting product");
+  }
 };
 
-// Search products by name using full-text search
+// Search products by name
 const searchProductsByName = async (searchTerm) => {
-  const products = await Product.find({
-      $text: { $search: searchTerm }  // Full-text search for product names
-  });
-
-  return products;
+  try {
+    const products = await Product.find({
+      $text: { $search: searchTerm },
+    });
+    return products;
+  } catch (error) {
+    throw new Error("Error searching products by name");
+  }
 };
 
 module.exports = {
@@ -72,5 +148,6 @@ module.exports = {
   getAllProducts,
   getProductById,
   deleteProductById,
-  searchProductsByName
+  searchProductsByName,
+  setMainImage,
 };

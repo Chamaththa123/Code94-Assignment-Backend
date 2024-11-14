@@ -6,27 +6,27 @@ const {
   getAllProducts,
   getProductById,
   deleteProductById,
-  searchProducts
+  searchProducts,
 } = require("../controllers/productController");
 const upload = require("../middleware/upload");
+const verifyToken = require("../middleware/authMiddleware");
 
 // Route to add product
-router.post("/", upload.array("images"), createProduct);
+router.post("/", verifyToken, upload.array("images"), createProduct);
 
 // Route to update product
-router.put("/:id", upload.array("images"), updateProduct);
+router.put("/:id", verifyToken, upload.array("images"), updateProduct);
 
 // Route to get all products
-router.get("/", getAllProducts);
+router.get("/", verifyToken, getAllProducts);
 
 // Route to search for products by name
-router.get("/search", searchProducts);
+router.get("/search", verifyToken, searchProducts);
 
 // Route to get product by ID
-router.get("/:id", getProductById);
+router.get("/:id", verifyToken, getProductById);
 
 // Route to delete product by ID
-router.delete("/:id", deleteProductById);
-
+router.delete("/:id", verifyToken, deleteProductById);
 
 module.exports = router;

@@ -1,4 +1,5 @@
 const productDBService = require("../services/productService");
+const BASE_URL = process.env.BASE_URL;
 
 // Create a new product
 const createProduct = async (req, res) => {
@@ -24,6 +25,8 @@ const createProduct = async (req, res) => {
         .status(400)
         .json({ message: "Only one image can be the main image" });
     }
+
+    //if no any main image, set first image in default
     if (mainImages.length === 0) {
       imagePaths[0].isMain = true;
     }
@@ -38,30 +41,31 @@ const createProduct = async (req, res) => {
     res.status(201).json({ message: "Product created successfully", product });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error when fetching data" });
+    res.status(500).json({ message: "Server error when creating product" });
   }
 };
-
+//update product
 const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(id);
-    const { sku, quantity, product_name, product_description } = req.body;
+    const {
+      sku,
+      quantity,
+      product_name,
+      product_description,
+      removedImages,
+      mainImageId,
+    } = req.body;
+
+    //update main image
+    await productDBService.setMainImage(id, mainImageId);
 
     const imagePaths = req.files
       ? req.files.map((file, index) => ({
           path: file.path,
-          isMain: req.body.isMain && req.body.isMain[index] === "true", // Main image check
+          isMain: req.body.isMain && req.body.isMain[index] === "true",
         }))
       : [];
-
-    // Validate that only one image is marked as main
-    const mainImages = imagePaths.filter((image) => image.isMain);
-    if (mainImages.length > 1) {
-      return res
-        .status(400)
-        .json({ message: "Only one image can be the main image" });
-    }
 
     const updatedProduct = await productDBService.updateProduct(
       id,
@@ -69,10 +73,10 @@ const updateProduct = async (req, res) => {
       quantity,
       product_name,
       product_description,
-      imagePaths
+      imagePaths,
+      removedImages
     );
 
-    // Check if product was found
     if (!updatedProduct) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -82,7 +86,7 @@ const updateProduct = async (req, res) => {
       .json({ message: "Product updated successfully", updatedProduct });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error when updating product" });
   }
 };
 
@@ -91,19 +95,19 @@ const getAllProducts = async (req, res) => {
   try {
     const products = await productDBService.getAllProducts();
 
-    // Filter images to only include the main image for each product
+    // Filter each product to include only the main image
     const productsWithMainImage = products.map((product) => {
       const mainImage = product.images.find((image) => image.isMain);
       return {
         ...product._doc,
-        images: mainImage ? [mainImage] : [],
+        mainImageURL: mainImage ? `${BASE_URL}/${mainImage.path}` : null,
       };
     });
 
     res.status(200).json(productsWithMainImage);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error when fetching product" });
   }
 };
 
@@ -111,18 +115,25 @@ const getAllProducts = async (req, res) => {
 const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(id);
     const product = await productDBService.getProductById(id);
 
-    // Check if product was found,
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    res.status(200).json(product);
+    //  add BASE_URL to each image path
+    const imagesWithUrls = product.images.map((image) => ({
+      ...image._doc,
+      path: `${BASE_URL}/${image.path}`,
+    }));
+
+    res.status(200).json({
+      ...product._doc,
+      images: imagesWithUrls,
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error when fetching product" });
   }
 };
 
@@ -132,7 +143,6 @@ const deleteProductById = async (req, res) => {
     const { id } = req.params;
     const deletedProduct = await productDBService.deleteProductById(id);
 
-    // Check if product was found,
     if (!deletedProduct) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -140,7 +150,7 @@ const deleteProductById = async (req, res) => {
     res.status(200).json({ message: "Product deleted successfully" });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error when deleting product" });
   }
 };
 
@@ -148,18 +158,15 @@ const deleteProductById = async (req, res) => {
 const searchProducts = async (req, res) => {
   try {
     const { searchTerm } = req.query;
-    console.log(searchTerm);
     if (!searchTerm) {
       return res.status(400).json({ message: "Search term is required" });
     }
 
-    // Call the service method to search for products
     const products = await productDBService.searchProductsByName(searchTerm);
-    console.log(products);
     res.status(200).json(products);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error when searching product" });
   }
 };
 

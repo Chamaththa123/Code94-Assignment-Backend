@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-// Define the schema for products
 const productSchema = new Schema({
   sku: {
     type: String,
@@ -25,7 +24,6 @@ const productSchema = new Schema({
         type: String,
         required: true,
       },
-      // Boolean flag indicating if this image is the main image
       isMain: {
         type: Boolean,
         default: false,
